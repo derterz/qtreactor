@@ -83,6 +83,6 @@ setup(
 try:
     from twisted.plugin import IPlugin, getPlugins
     list(getPlugins(IPlugin))
-except Exception, e:
+except Exception as e:
     log.warn("*** Failed to update Twisted plugin cache. ***")
     log.warn(str(e))

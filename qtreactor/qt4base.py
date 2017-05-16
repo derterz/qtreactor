@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     reactors.installReactor('pyqt4')
 
-from zope.interface import implements
+from zope.interface import implementer
 from twisted.internet.interfaces import IReactorFDSet
 from twisted.python import log, runtime
 from twisted.internet import posixbase
@@ -140,8 +140,8 @@ def msg_blast(msg_type, msg):
     log.msg("Qt says: ", msg_type, msg)
 
 
+@implementer(IReactorFDSet)
 class QtReactor(posixbase.PosixReactorBase):
-    implements(IReactorFDSet)
 
     def __init__(self):
         self._reads = {}
@@ -257,7 +257,13 @@ class QtReactor(posixbase.PosixReactorBase):
         if not self.running and self._blockApp:
             self._blockApp.quit()
         self._timer.stop()
-        delay = max(delay, 1)
+
+        # if delay is None or False use 1 as minimum
+        if delay:
+            delay = max(delay, 1)
+        else:
+            delay = 1
+
         if not fromqt:
             self.qApp.processEvents(QtCore.QEventLoop.AllEvents, delay * 1000)
         if self.timeout() is None:
@@ -391,7 +397,7 @@ if __name__ == '__main__':
     with redirect_argv([trialpath,
                         'twisted.test.test_ftp',
                         'twisted.test.test_internet']):
-        exec trial
+        exec(trial)
         print("ran with: ", reactor.__module__)
 
 __all__ = ["install"]
