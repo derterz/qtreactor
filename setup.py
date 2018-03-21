@@ -61,7 +61,7 @@ classifiers = [
 
 setup(
     name='qt4reactor',
-    version='1.6',
+    version='1.7.1',
     license='MIT',
     classifiers=classifiers,
     author='Glenn H. Tarbox',

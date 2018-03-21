@@ -52,8 +52,12 @@ from qtreactor import qtreactor_config
 
 if qtreactor_config.get_qt_name() == "PyQt4":
     from PyQt4 import QtCore
+elif qtreactor_config.get_qt_name() == "PyQt5":
+    from PyQt5 import QtCore
 elif qtreactor_config.get_qt_name() == "PySide":
     from PySide import QtCore
+elif qtreactor_config.get_qt_name() == "PySide2":
+    from PySide2 import QtCore
 else:
     raise Exception("Must Have PyQt4 or PySide")
 
@@ -75,13 +79,23 @@ class TwistedSocketNotifier(QtCore.QObject):
             self.fn = self.read
         else:
             self.fn = self.write
-        QtCore.QObject.connect(self.notifier,
-                               QtCore.SIGNAL("activated(int)"),
-                               self.fn)
+
+        if qtreactor_config.get_qt_name() == "PyQt4":
+            # Fallback for PyQt<4.5
+            QtCore.QObject.connect(self.notifier,
+                                   QtCore.SIGNAL("activated(int)"),
+                                   self.fn)
+        else:
+            self.notifier.activated.connect(self.fn)
 
     def shutdown(self):
         self.notifier.setEnabled(False)
-        self.disconnect(self.notifier, QtCore.SIGNAL("activated(int)"), self.fn)
+        if qtreactor_config.get_qt_name() == "PyQt4":
+            # Fallback for PyQt<4.5
+            self.disconnect(self.notifier, QtCore.SIGNAL("activated(int)"),
+                            self.fn)
+        else:
+            self.notifier.activated.disconnect(self.fn)
         self.fn = self.watcher = None
         self.notifier.deleteLater()
         self.deleteLater()
@@ -149,9 +163,13 @@ class QtReactor(posixbase.PosixReactorBase):
         self._notifiers = {}
         self._timer = QtCore.QTimer()
         self._timer.setSingleShot(True)
-        QtCore.QObject.connect(self._timer,
-                               QtCore.SIGNAL("timeout()"),
-                               self._qt_timeout)
+        if qtreactor_config.get_qt_name() == "PyQt4":
+            # Fallback for PyQt<4.5
+            QtCore.QObject.connect(self._timer,
+                                   QtCore.SIGNAL("timeout()"),
+                                   self._qt_timeout)
+        else:
+            self._timer.timeout.connect(self._qt_timeout)
 
         # noinspection PyArgumentList,PyArgumentList
         if QtCore.QCoreApplication.instance() is None:
@@ -163,7 +181,10 @@ class QtReactor(posixbase.PosixReactorBase):
             self._ownApp = False
         self._blockApp = None
 
-        QtCore.qInstallMsgHandler(msg_blast)
+        if qtreactor_config.get_qt_name() in ("PyQt5", "PySide2"):
+            QtCore.qInstallMessageHandler(msg_blast)
+        else:
+            QtCore.qInstallMsgHandler(msg_blast)
 
         super(QtReactor, self).__init__()
 
